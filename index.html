@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BeeLine Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="w-full max-w-2xl p-6 bg-white rounded-2xl shadow-xl flex flex-col h-[90vh]">
+    <h1 class="text-2xl font-bold text-center mb-4 flex items-center justify-center gap-2">
+        <img src="beelineLogo.png" alt="BeeLine Logo" class="w-8 h-8" />
+        BeeLine AI Chatbot
+      </h1>      
+    <div id="chat-window" class="flex-1 overflow-y-auto px-2 mb-4 space-y-4 text-gray-800 flex flex-col">
+      <!-- 메시지가 여기에 쌓임 -->
+    </div>
+    <div class="flex items-center space-x-2">
+      <input id="user-input" type="text" placeholder="Ask me anything..." class="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-400">
+      <button onclick="sendMessage()" class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-full">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatWindow = document.getElementById("chat-window");
+
+    function createMessageBubble(content, sender) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `flex items-start gap-2 ${
+        sender === "user" ? "justify-end flex-row-reverse" : ""
+      }`;
+
+      const avatar = document.createElement("div");
+      avatar.className = `w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
+        sender === "user" ? "bg-yellow-400" : "bg-gray-400"
+      }`;
+      avatar.textContent = sender === "user" ? "U" : "B";
+
+      const bubble = document.createElement("div");
+      bubble.className =
+        "p-3 rounded-xl max-w-[80%] whitespace-pre-line leading-relaxed text-sm shadow " +
+        (sender === "user" ? "bg-yellow-200 text-right" : "bg-gray-200 text-left");
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubble);
+      chatWindow.appendChild(wrapper);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      
+      let i = 0;
+      function type() {
+        if (i < content.length) {
+          bubble.textContent += content.charAt(i);
+          i++;
+          setTimeout(type, 15);
+        }
+      }
+      type();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const message = input.value.trim();
+      if (!message) return;
+
+      createMessageBubble(message, "user");
+      input.value = "";
+
+      const loading = document.createElement("div");
+      loading.className = "italic text-sm text-gray-400";
+      loading.textContent = "Typing...";
+      chatWindow.appendChild(loading);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      try {
+        const res = await fetch("http://localhost:8000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+        chatWindow.removeChild(loading);
+        createMessageBubble(data.response, "bot");
+      } catch (err) {
+        chatWindow.removeChild(loading);
+        createMessageBubble("❌ Server error: " + err.message, "bot");
+      }
+    }
+  </script>
+</body>
+</html>
